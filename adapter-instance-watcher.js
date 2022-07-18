@@ -3,12 +3,12 @@
  * https://github.com/Acgua/ioBroker-Script-Adapter-Instances-Watcher/
  * -------------------------------------------------------------------------------------
  * 
- * ANLEITUNG: https://github.com/Acgua/ioBroker-Script-Adapter-Instances-Watcher/
- *
  * ABHÄNGIGKEITEN (Dependencies)
  *  - Erfordert "cron-parser" als zusätzliches NPM-Modul in den JavaScript-Adapter-Einstellungen.
  * 
- * Version: 0.0.1 (Acgua)
+ * ANLEITUNG: https://github.com/Acgua/ioBroker-Script-Adapter-Instances-Watcher/
+ * 
+ * Version: 0.0.2
  ***************************************************************************************/
 
 
@@ -28,6 +28,14 @@ const LOG_INFO = true;
 
 // Für Fehlerbehebung (Debug) und Entwicklung aktivieren.
 const LOG_DEBUG = false;
+
+// 18.07.2022 - https://github.com/Acgua/ioBroker-Script-Adapter-Instances-Watcher/issues/1 und https://forum.iobroker.net/post/827939
+// In manchen ioBroker-Umgebungen scheint die Abfrage von <Instanz>.info.connection kein Boolean (true/false) zurückzugeben, sondern Strings wie "remeha logger,Klimastation_0" oder "[2]admin, javascript".
+// Ich (Acgua) kann es nicht reproduzieren.
+// Daher Workaround ab Version 0.0.2. Bei Ausgabe eines Strings wird angenommen, dass es eine Verbindung gibt.
+// --
+// Wenn folgendes auf true gesetzt ist, wird eine Warnmeldung im Log ausgegeben, sobald ein String und nicht Boolean zurückgegeben wird.
+const LOG_WARN_INFO_CONNECTION_NO_BOOLEAN = true;
 
 
 /***************************************************************************************************************
@@ -321,10 +329,25 @@ class AdapterInstance {
 
                 if (await existsStateAsync(`${this.id}.info.connection`)) {
                     const infConnObj = await getStateAsync(`${this.id}.info.connection`);
-                    this.connected_with_device_service = infConnObj.val;                    
-                }
+                    this.connected_with_device_service = infConnObj.val;
 
+                    // 18.07.2022
+                    // Workaround, as in some circumstances a string like "remeha logger,Klimastation_0" or "[2]admin, javascript" may be returned.
+                    // See https://github.com/Acgua/ioBroker-Script-Adapter-Instances-Watcher/issues/1
+                    if (typeof infConnObj.val === 'boolean') {
+                        this.connected_with_device_service = infConnObj.val;
+                    } else if (typeof infConnObj.val === 'string' && infConnObj.val.length > 1) {
+                        // If string, then we assume connection is given
+                        this.connected_with_device_service = true;
+                        if (LOG_WARN_INFO_CONNECTION_NO_BOOLEAN) log(`${this.id}.info.connection returns String "${infConnObj.val}", but boolean expected. We assume connection is true and continue.`, 'warn');
+                    } else {
+                        // No string (or empty), no boolean, so we assume no connection is given.
+                        this.connected_with_device_service = false;
+                        if (LOG_WARN_INFO_CONNECTION_NO_BOOLEAN) log(`${this.id}.info.connection returns ${typeof infConnObj.val}, Value="${JSON.stringify(infConnObj.val)}", but boolean expected. We assume connection is false and continue.`, 'warn');
+                    }
+                }
             }
+
             /**
              * Is functioning status
              * Do after everything else!
