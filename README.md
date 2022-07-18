@@ -74,7 +74,10 @@ Siehe hier: [Javascript: Adapter-Instanzen überwachen](https://forum.iobroker.n
 
 ## Change Log
 
-### 0.0.1 (Juni 2022)
+### 0.0.2 (18. Juli 2022)
+* [Acgua](https://github.com/Acgua/) – Workaround aufgrund [Issue #1](https://github.com/Acgua/ioBroker-Script-Adapter-Instances-Watcher/issues/1) eingebaut. In manchen ioBroker-Umgebungen scheint die Abfrage von `admin.0.info.connection` (sowie bisher identifizierte Adapter mqtt und sonoff) kein Boolean zurückzugeben, sondern ein String wie etwa `[2]admin, javascript`. Ich kann es nicht reproduzieren aber habe ein Workaround eingebaut. Bei Ausgabe eines Strings (Länge > 1) wird angenommen, dass eine Verbindung besteht.
+
+### 0.0.1 (Juli 2022)
 * [Acgua](https://github.com/Acgua/) – Neu, zum testen
 
 ## Lizenz (License)
